@@ -1,4 +1,4 @@
-import * as THREE from './libs/three/three.module.js';
+import * as THREE from './libs/three/three.module';
 import { OrbitControls } from './libs/three/jsm/OrbitControls.js';
 
 class App {
