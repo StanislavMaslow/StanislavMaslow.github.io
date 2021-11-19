@@ -17,7 +17,7 @@ class App {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xbbbbbb);
 
-    const ambient = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 0.3);
+    const ambient = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 0.9);
     this.scene.add(ambient);
 
     const light = new THREE.DirectionalLight();
