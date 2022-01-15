@@ -81,13 +81,14 @@ class App{
         
         this.highlight = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.BackSide } ) );
         this.highlight.scale.set(1.2, 1.2, 1.2);
+        this.scene.add( this.highlight)
     }
     
     setupXR(){
         this.renderer.xr.enabled = true;
         
         const button = new VRButton( this.renderer );
-        
+        this.controllers = this.buildControllers()
         const self = this;
         
         function onSelectStart() {
@@ -98,7 +99,7 @@ class App{
         }
 
         function onSelectEnd() {
-
+            this.children[0].scale.z = 0
             self.highlight.visible = false;
             this.userData.selectPressed = false;
             if (self.spotlight) self.spotlight.visible = false;
@@ -106,9 +107,9 @@ class App{
         }
         
         // this.controller = this.renderer.xr.getController( 0 );
-        this.controller.forEach((controller) => {
-            this.controller.addEventListener( 'selectstart', onSelectStart );
-            this.controller.addEventListener( 'selectend', onSelectEnd );
+        this.controllers.forEach((controller) => {
+            controller.addEventListener( 'selectstart', onSelectStart );
+            controller.addEventListener( 'selectend', onSelectEnd );
 
         })
         this.controller.addEventListener( 'connected', function ( event ) {
@@ -162,7 +163,7 @@ class App{
             this.workingMatrix.identity().extractRotation( controller.matrixWorld );
 
             this.raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
-            this.raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( this.workingMatrix );
+            this.raycaster.ray.direction.set( 0, 0, -1 ).applyMatrix4( this.workingMatrix );
 
             const intersects = this.raycaster.intersectObjects( this.room.children );
 
