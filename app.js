@@ -160,6 +160,7 @@ class App{
     
     handleController( controller ){
         if (controller.userData.selectPressed ){
+            controller.children[0].scale.z = 10
             this.workingMatrix.identity().extractRotation( controller.matrixWorld );
 
             this.raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
