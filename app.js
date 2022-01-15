@@ -86,7 +86,20 @@ class App{
     }  
     
     addBody(box=true){
-        
+        let shape;
+        if(!box){
+            shape =  new CANNON.Sphere(0.5);
+        } else {
+            shape = new CANNON.BOX(new CANNON.Vec3(0.5,0.5,0.5))
+        }
+        const material = new CANNON.Material();
+        const body = new CANNON.Body({mass: 5, material: material})
+        body.addShape(shape);
+        body.position.set(0,1,-3)
+        body.linearDamping = this.damping;
+        this.world.add(body);
+        this.helper.addVisual(body);
+        return body;
     }
     
     addConstraint(pos, body){
