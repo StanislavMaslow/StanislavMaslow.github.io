@@ -1,9 +1,10 @@
 import * as THREE from '../../libs/three/three.module.js';
 import { VRButton } from '../../libs/VRButton.js';
-import { XRControllerModelFactory } from '../../libs/three/jsm/XRControllerModelFactory.js';
 import { BoxLineGeometry } from '../../libs/three/jsm/BoxLineGeometry.js';
+import { GLTFLoader } from '../../libs/three/jsm/GLTFLoader.js';
 import { Stats } from '../../libs/stats.module.js';
 import { OrbitControls } from '../../libs/three/jsm/OrbitControls.js';
+import { SpotLightVolumetricMaterial } from '../../libs/SpotLightVolumetricMaterial.js';
 
 
 class App{
@@ -75,8 +76,11 @@ class App{
             object.position.z = this.random( -2, 2 );
 
             this.room.add( object );
+
         }
         
+        this.highlight = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.BackSide } ) );
+        this.highlight.scale.set(1.2, 1.2, 1.2);
     }
     
     setupXR(){
@@ -84,41 +88,91 @@ class App{
         
         const button = new VRButton( this.renderer );
         
-        this.controllers = this.buildControllers();
+        const self = this;
         
-    }
-    
-    buildControllers(){
-        const controllerModelFactory = new XRControllerModelFactory();
-        
-        const geometry = new THREE.BufferGeometry().setFromPoints( [
-            new THREE.Vector3(0,0,0),
-            new THREE.Vector3(0,0,-1)
-        ]);
-        const line = new THREE.Line( geometry );
-        line.name = 'line';
-        line.scale.z = 0;
-        
-        const controllers = [];
-        
-        for(let i=0; i<=1; i++){
-            const controller = this.renderer.xr.getController( i );
-            controller.add( line.clone() );
-            controller.userData.selectPressed = false;
-            this.scene.add(controller);
+        function onSelectStart() {
             
-            controllers.push( controller );
+            this.children[0].scale.z = 10
+            self.highlight.visible = false;
+            this.userData.selectPressed = false;
+        }
+
+        function onSelectEnd() {
+
+            self.highlight.visible = false;
+            this.userData.selectPressed = false;
+            if (self.spotlight) self.spotlight.visible = false;
             
-            const grip = this.renderer.xr.getControllerGrip( i );
-            grip.add( controllerModelFactory.createControllerModel( grip ));
-            this.scene.add( grip );
         }
         
-        return controllers;
+        // this.controller = this.renderer.xr.getController( 0 );
+        this.controller.forEach((controller) => {
+            this.controller.addEventListener( 'selectstart', onSelectStart );
+            this.controller.addEventListener( 'selectend', onSelectEnd );
+
+        })
+        this.controller.addEventListener( 'connected', function ( event ) {
+
+            self.buildController.call(self, event.data, this );
+
+        } );
+        this.controller.addEventListener( 'disconnected', function () {
+
+            while(this.children.length>0) this.remove( this.children[ 0 ] );
+            self.controller = null;
+
+        } );
+        this.scene.add( this.controller );
+ 
+        this.scene.add(this.highlight);
+
+    }
+    
+    buildController( data, controller ) {
+        // let geometry, material, loader;
+        
+        // const self = this;
+        
+        // switch ( data.targetRayMode ) {
+            
+        //     case 'tracked-pointer':
+        //         //Enter code here
+                
+                    
+        //         }),
+        //             null,
+        //             (error) => {
+        //             console.error('An error happened');
+        //         }
+                
+        //         break;
+                
+        //     case 'gaze':
+
+        //         geometry = new THREE.RingBufferGeometry( 0.02, 0.04, 32 ).translate( 0, 0, - 1 );
+        //         material = new THREE.MeshBasicMaterial( { opacity: 0.5, transparent: true } );
+        //         controller.add( new THREE.Mesh( geometry, material ) )
+
+        // }
+
     }
     
     handleController( controller ){
-        
+        if (controller.userData.selectPressed ){
+            this.workingMatrix.identity().extractRotation( controller.matrixWorld );
+
+            this.raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
+            this.raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( this.workingMatrix );
+
+            const intersects = this.raycaster.intersectObjects( this.room.children );
+
+            if (intersects.length>0){
+                intersects[0].object.add(this.highlight);
+                this.highlight.visible = true;
+            }else{
+                this.highlight.visible = false;
+            }
+        }
     }
     
     resize(){
@@ -129,14 +183,7 @@ class App{
     
 	render( ) {   
         this.stats.update();
-        
-        if (this.controllers ){
-            const self = this;
-            this.controllers.forEach( ( controller) => { 
-                self.handleController( controller ) 
-            });
-        }
-        
+        if (this.controller ) this.handleController( this.controller );
         this.renderer.render( this.scene, this.camera );
     }
 }
