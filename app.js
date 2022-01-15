@@ -91,7 +91,7 @@ class App{
         }
         this.dolly = new THREE.Object3D();
 
-        this.dolly.position = 5;
+        this.dolly.position.y = 5;
         this.dolly.add(this.camera);
         this.scene.add(this.dolly);
         this.dummyCam = new THREE.Object3D();
