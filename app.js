@@ -97,7 +97,7 @@ class App{
         if(!box){
             shape =  new CANNON.Sphere(0.5);
         } else {
-            shape = new CANNON.BOX(new CANNON.Vec3(0.5,0.5,0.5))
+            shape = new CANNON.Box(new CANNON.Vec3(0.5,0.5,0.5))
         }
         const material = new CANNON.Material();
         const body = new CANNON.Body({mass: 5, material: material})
