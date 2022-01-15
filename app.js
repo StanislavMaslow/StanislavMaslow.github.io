@@ -3,7 +3,7 @@ import { VRButton } from '../../libs/VRButton.js';
 import { XRControllerModelFactory } from '../../libs/three/jsm/XRControllerModelFactory.js';
 import { Stats } from '../../libs/stats.module.js';
 import { OrbitControls } from '../../libs/three/jsm/OrbitControls.js';
-
+import { CannonHelper } from '../../libs/CannonHelper.js';
 
 class App{
 	constructor(){
@@ -12,93 +12,86 @@ class App{
         
         this.clock = new THREE.Clock();
         
-		this.camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 200 );
-		this.camera.position.set( 0, 1.6, 5 );
+		this.camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 100 );
+		this.camera.position.set( 0, 1.6, 0 );
+        this.camera.lookAt( 0, 0, -2 );
         
 		this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color( 0x505050 );
 
-		this.scene.add( new THREE.HemisphereLight( 0xffffff, 0x404040 ) );
+		this.scene.add( new THREE.HemisphereLight( 0x555555, 0xFFFFFF ) );
 
         const light = new THREE.DirectionalLight( 0xffffff );
-        light.position.set( 1, 1, 1 ).normalize();
+        light.position.set( 1, 1.25, 1.25 ).normalize();
+        light.castShadow = true;
+        const size = 15;
+        light.shadow.left = -size;
+        light.shadow.bottom = -size;
+        light.shadow.right = size;
+        light.shadow.top = size;
 		this.scene.add( light );
 			
 		this.renderer = new THREE.WebGLRenderer({ antialias: true } );
 		this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.renderer.shadowMap.enabled = true;
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
         this.renderer.outputEncoding = THREE.sRGBEncoding;
         
 		container.appendChild( this.renderer.domElement );
         
         this.controls = new OrbitControls( this.camera, this.renderer.domElement );
-        this.controls.target.set(0, 1.6, 0);
+        this.controls.target.set(0, 0, -3);
         this.controls.update();
         
         this.stats = new Stats();
-        document.body.appendChild( this.stats.dom );
-        
-        this.raycaster = new THREE.Raycaster();
-        this.workingMatrix = new THREE.Matrix4();
-        this.workingVector = new THREE.Vector3();
-        this.origin = new THREE.Vector3();
         
         this.initScene();
         this.setupXR();
         
-        window.addEventListener('resize', this.resize.bind(this) );
-        
         this.renderer.setAnimationLoop( this.render.bind(this) );
+        
+        this.raycaster = new THREE.Raycaster();
+        this.workingMatrix = new THREE.Matrix4();
+        this.origin = new THREE.Vector3();
+        
+        window.addEventListener('resize', this.resize.bind(this) );
 	}	
     
-    random( min, max ){
-        return Math.random() * (max-min) + min;
+    initScene(){
+        
+        //Create a marker to indicate where the joint is
+        const geometry = new THREE.SphereBufferGeometry( 0.1, 8, 8 );
+        const material = new THREE.MeshStandardMaterial({ color: 0xaa0000 });
+        this.marker = new THREE.Mesh( geometry, material );
+        this.marker.visible = false;
+        this.scene.add(this.marker);
+
+        this.initPhysics();
     }
     
-    initScene(){
+    initPhysics(){
+        this.world = new CANNON.World();
+        this.timeStep = 1.0/60.0;
+        this.damping = 0.01;
 
-		this.scene.background = new THREE.Color( 0xa0a0a0 );
-		this.scene.fog = new THREE.Fog( 0xa0a0a0, 50, 100 );
-
-		// ground
-		const ground = new THREE.Mesh( new THREE.PlaneBufferGeometry( 200, 200 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
-		ground.rotation.x = - Math.PI / 2;
-		this.scene.add( ground );
-
-		var grid = new THREE.GridHelper( 200, 40, 0x000000, 0x000000 );
-		grid.material.opacity = 0.2;
-		grid.material.transparent = true;
-		this.scene.add( grid );
+        this.world.broadphase = new CANNON.NaiveBroadphase();
+        this.world.gravity.set(0, -10,0);
+        this.helper = new CannonHelper(this.scene, this.world);
+        const groundBody = new CANNON.Body({mass:0})
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), - Math.PI/2)
+        const groundShape = new CANNON.Plane();
+        groundBody.addShape(groundShape);
+        this.world.add(groundBody);
+        this.helper.addVisual(groundBody, 0xFFAA00)
+    }  
+    
+    addBody(box=true){
         
-        const geometry = new THREE.BoxGeometry(5, 5, 5);
-        const material = new THREE.MeshPhongMaterial({ color:0xAAAA22 });
-        const edges = new THREE.EdgesGeometry( geometry );
-        const line = new THREE.LineSegments( edges, new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 2 } ) );
-
-        this.colliders = [];
+    }
+    
+    addConstraint(pos, body){
         
-        for (let x=-100; x<100; x+=10){
-            for (let z=-100; z<100; z+=10){
-                if (x==0 && z==0) continue;
-                const box = new THREE.Mesh(geometry, material);
-                box.position.set(x, 2.5, z);
-                const edge = line.clone();
-                edge.position.copy( box.position );
-                this.scene.add(box);
-                this.scene.add(edge);
-                this.colliders.push(box);
-            }
-        }
-        this.dolly = new THREE.Object3D();
-
-        this.dolly.position.y = 5;
-        this.dolly.add(this.camera);
-        this.scene.add(this.dolly);
-        this.dummyCam = new THREE.Object3D();
-        this.camera.add(this.dummyCam)
-        
-        
-    } 
+    }
     
     setupXR(){
         this.renderer.xr.enabled = true;
@@ -110,16 +103,26 @@ class App{
         function onSelectStart() {
             
             this.userData.selectPressed = true;
+            if (this.userData.selected){
+                self.addConstraint( self.marker.getWorldPosition( self.origin ), self.box );
+                self.controller.attach( self.marker );
+            }
         }
 
         function onSelectEnd() {
 
             this.userData.selectPressed = false;
+            const constraint = self.controller.userData.constraint;
+            if (constraint){
+                self.world.removeConstraint(constraint);
+                self.controller.userData.constraint = undefined;
+                self.scene.add( self.marker );
+                self.marker.visible = false;
+            }
             
         }
         
         this.controller = this.renderer.xr.getController( 0 );
-        this.dolly.add( this.controller );
         this.controller.addEventListener( 'selectstart', onSelectStart );
         this.controller.addEventListener( 'selectend', onSelectEnd );
         this.controller.addEventListener( 'connected', function ( event ) {
@@ -143,7 +146,6 @@ class App{
         this.controllerGrip = this.renderer.xr.getControllerGrip( 0 );
         this.controllerGrip.add( controllerModelFactory.createControllerModel( this.controllerGrip ) );
         this.scene.add( this.controllerGrip );
-
     }
     
     buildController( data ) {
@@ -171,29 +173,32 @@ class App{
 
     }
     
-    handleController( controller, dt ){
-        if (controller.userData.selectPressed ){
-            const wallLimit = 1.3;
-            let pos = this.dolly.position.clone();
-            pos.y +=1;
-            const speed = 2;
-            const quaternion = this.dolly.quaternion.clone();
-            this.dolly.quaternion.copy(this.dummyCam.getWorldQuaternion());
-            this.dolly.getWorldDirection(this.workingVector);
-            this.workingVector.negate();
+    handleController( controller ){
+        if (!controller.userData.selectPressed){
+            controller.children[0].scale.z = 10;
 
-            this.raycaster.set(pos, this.workingVector );
-            let blocked =false;
-            let intersect = this.raycaster.intersectObject(this.colliders)
-            if (intersect.length > 0 ) {
-                if(intersect[0].distance < wallLimit) blocked = true;
+            this.workingMatrix.identity().extractRotation( controller.matrixWorld );
+
+            this.raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
+            this.raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( this.workingMatrix );
+
+            const intersects = this.raycaster.intersectObject( this.box.threemesh.children[0] );
+
+            if (intersects.length>0){
+                this.marker.position.copy(intersects[0].point);
+                this.marker.visible = true;
+                controller.children[0].scale.z = intersects[0].distance;
+                controller.userData.selected = true;
+            }else{
+                this.marker.visible = false;
+                controller.userData.selected = false;
             }
-            if (!blocked ) {
-                
-                this.dolly.translateZ(-dt*speed);
+        }else{
+            const constraint = controller.userData.constraint;
+            if (constraint){
+                this.jointBody.position.copy( this.marker.getWorldPosition( this.origin ) );
+                constraint.update(); 
             }
-            this.dolly.position.y = 0;
-            this.dolly.quaternion.copy(quaternion)
         }
     }
     
@@ -203,10 +208,11 @@ class App{
         this.renderer.setSize( window.innerWidth, window.innerHeight );  
     }
     
-	render( ) {  
-        const dt = this.clock.getDelta();
+	render( ) {   
         this.stats.update();
-        if (this.controller ) this.handleController( this.controller, dt );
+        if (this.renderer.xr.isPresenting) this.handleController( this.controller );
+        if (this.world) this.world.step(this.timeStep);
+        if (this.helper) this.helper.update( );
         this.renderer.render( this.scene, this.camera );
     }
 }
