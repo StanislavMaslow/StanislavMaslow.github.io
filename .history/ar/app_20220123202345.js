@@ -133,20 +133,13 @@ class App{
         }
         
         function onSessionStart(){
-            self.ui.mesh.position.set(0, -0.5, -1.1)
-						self.camera.add(self.ui.mesh)
-					}
+            
+        }
         
         function onSessionEnd(){
-					self.camera.remove(self.ui.mesh)
+            
         }
-        const btn = new ARButton(this.render, {onSessionStart,onSessionEnd,sessionInit: {
-					optionalFeatures: ['dom-overlay'], domOverlay: {root: document.body}
-				}})
-				const controller = this.renderer.xr.getController(0);
-				controller.addEventListener('connected', onConnected);
-				this.scene.add(controller);
-				this.controller = controller;
+        const btn = new ARButton(this.render, {})
         this.renderer.setAnimationLoop( this.render.bind(this) );
     }
     
