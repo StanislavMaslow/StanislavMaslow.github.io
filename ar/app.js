@@ -153,7 +153,7 @@ class App{
 					domOverlay: {root: document.body}
 				}}, )
 				controller = this.renderer.xr.getController(0);
-				controller.addEventListener('conected', onConected);
+				controller.addEventListener('conected', onConnected);
 				this.scene.add(controller);
 				this.controller = controller;
         this.renderer.setAnimationLoop( this.render.bind(this) );
