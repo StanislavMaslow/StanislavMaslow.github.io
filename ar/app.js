@@ -174,14 +174,39 @@ class App{
 					if(ev.initScene !== undefined){
 						self.startPosition = self.knight.object.position.clone();
 					} else {
-						const pos = self.startPosition.clone().add()
-							ev.delta.multiplyScalar(3);
+						const pos = self.startPosition.clone().add(
+							ev.delta.multiplyScalar(3));
 							self.knight.object.position.copy(pos);
 							self.ui.updateElement('info', `pan x ${ev.delta.x.toFixed(3)} y: ${ ev.delta.y.toFixed(3)} z: ${ ev.delta.z.toFixed(3)}`)
 						
 					}
+				});
+				this.gestures.addEventListener('pinch', (ev)=>{
+					console.log('----------eve',ev );
+					if(ev.initialise !== undefined) {
+						self.startScale = self.knight.object.scale.clone()
+					} else {
+						const scale = self.startScale.clone().multiplyScalar(ev.scale);
+						self.knight.object.scale.copy(scale);
+						self.ui.updateElement('info', `pinch delta ${ev.delta.toFixed(3)} scale: ${ev.scale.toFixed(2)}`)
+						
+					}
+
 				})
 
+				this.gestures.addEventListener('rotate', (ev)=>{
+					console.log('----------eve',ev );
+					if(ev.initialise !== undefined) {
+						self.startQuaternion = self.knight.object.quaternion.clone()
+					} else {
+					
+						self.knight.object.quaternion.copy(self.startQuaternion);
+						self.knight.object.rotateY(ev.theta);
+						self.ui.updateElement('info', `rotate delta ${ev.theta.toFixed(3)} `)
+						
+					}
+
+				})
         this.renderer.setAnimationLoop( this.render.bind(this) );
     }
     
