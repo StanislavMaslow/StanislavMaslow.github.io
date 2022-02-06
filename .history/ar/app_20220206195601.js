@@ -115,30 +115,30 @@ class App{
 					self.meshes.push(mesh);
 				}
         
-        function onConnected( event ) {
-            if (self.info === undefined){
-                const info = {};
+        // function onConnected( event ) {
+        //     if (self.info === undefined){
+        //         const info = {};
 
-                fetchProfile( event.data, DEFAULT_PROFILES_PATH, DEFAULT_PROFILE ).then( ( { profile, assetPath } ) => {
-                    console.log( JSON.stringify(profile));
+        //         fetchProfile( event.data, DEFAULT_PROFILES_PATH, DEFAULT_PROFILE ).then( ( { profile, assetPath } ) => {
+        //             console.log( JSON.stringify(profile));
 
-                    info.name = profile.profileId;
-                    info.targetRayMode = event.data.targetRayMode;
+        //             info.name = profile.profileId;
+        //             info.targetRayMode = event.data.targetRayMode;
 
-                    Object.entries( profile.layouts ).forEach( ( [key, layout] ) => {
-                        const components = {};
-                        Object.values( layout.components ).forEach( ( component ) => {
-                            components[component.type] = component.gamepadIndices;
-                        });
-                        info[key] = components;
-                    });
+        //             Object.entries( profile.layouts ).forEach( ( [key, layout] ) => {
+        //                 const components = {};
+        //                 Object.values( layout.components ).forEach( ( component ) => {
+        //                     components[component.type] = component.gamepadIndices;
+        //                 });
+        //                 info[key] = components;
+        //             });
 
-                    self.info = info;
-                    self.ui.updateElement( "info", JSON.stringify(info) );
+        //             self.info = info;
+        //             self.ui.updateElement( "info", JSON.stringify(info) );
 
-                } );
-            }
-        }
+        //         } );
+        //     }
+        // }
         
         function onSessionStart(){
             self.ui.mesh.position.set(0, -0.5, -1.1)
@@ -153,9 +153,9 @@ class App{
 					domOverlay: {root: document.body}
 				})
 				controller = this.renderer.xr.getController(0);
-				controller.addEventListener('conected', onConected);
+				controller.addEventListener('select', onSelect);
 				this.scene.add(controller);
-				this.controller = controller;
+				// this.controller = controller;
         this.renderer.setAnimationLoop( this.render.bind(this) );
     }
     
