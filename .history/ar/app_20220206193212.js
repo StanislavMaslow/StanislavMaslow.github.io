@@ -1,13 +1,13 @@
-import * as THREE from '../../libs/three/three.module.js';
-import { OrbitControls } from '../../libs/three/jsm/OrbitControls.js';
-import { GLTFLoader } from '../../libs/three/jsm/GLTFLoader.js';
-import { Stats } from '../../libs/stats.module.js';
-import { CanvasUI } from '../../libs/CanvasUI.js'
-import { ARButton } from '../../libs/ARButton.js';
+import * as THREE from '../../../libs/three/three.module.js';
+import { OrbitControls } from '../../../libs/three/jsm/OrbitControls.js';
+import { GLTFLoader } from '../../../libs/three/jsm/GLTFLoader.js';
+import { Stats } from '../../../libs/stats.module.js';
+import { CanvasUI } from '../../../libs/CanvasUI.js'
+import { ARButton } from '../../../libs/ARButton.js';
 import {
 	Constants as MotionControllerConstants,
 	fetchProfile
-} from '../../libs/three/jsm/motion-controllers.module.js';
+} from '../../../libs/three/jsm/motion-controllers.module.js';
 
 const DEFAULT_PROFILES_PATH = 'https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles';
 const DEFAULT_PROFILE = 'generic-trigger';
@@ -105,41 +105,54 @@ class App{
         this.renderer.xr.enabled = true; 
         
         const self = this;
-        let controller;
+				let controller;
+				function onSelect(){
+					const material = new THREE.MeshPhongMaterial({color: 0xFFFFFF * Math.random()})
+					const mesh = THREE.Mesh(self.geometry, material);
+					mesh.position.set(0,0,-0.3).applyMatrix4(controller.matrixWorld);
+					mesh.quaternion.setFromRotationmatrix(controller.matrixWorld);
+					self.scene.add(mesh);
+					self.mesh
+				}
         
-        function onConnected( event ) {
-            if (self.info === undefined){
-                const info = {};
+        // function onConnected( event ) {
+        //     if (self.info === undefined){
+        //         const info = {};
 
-                fetchProfile( event.data, DEFAULT_PROFILES_PATH, DEFAULT_PROFILE ).then( ( { profile, assetPath } ) => {
-                    console.log( JSON.stringify(profile));
+        //         fetchProfile( event.data, DEFAULT_PROFILES_PATH, DEFAULT_PROFILE ).then( ( { profile, assetPath } ) => {
+        //             console.log( JSON.stringify(profile));
 
-                    info.name = profile.profileId;
-                    info.targetRayMode = event.data.targetRayMode;
+        //             info.name = profile.profileId;
+        //             info.targetRayMode = event.data.targetRayMode;
 
-                    Object.entries( profile.layouts ).forEach( ( [key, layout] ) => {
-                        const components = {};
-                        Object.values( layout.components ).forEach( ( component ) => {
-                            components[component.type] = component.gamepadIndices;
-                        });
-                        info[key] = components;
-                    });
+        //             Object.entries( profile.layouts ).forEach( ( [key, layout] ) => {
+        //                 const components = {};
+        //                 Object.values( layout.components ).forEach( ( component ) => {
+        //                     components[component.type] = component.gamepadIndices;
+        //                 });
+        //                 info[key] = components;
+        //             });
 
-                    self.info = info;
-                    self.ui.updateElement( "info", JSON.stringify(info) );
+        //             self.info = info;
+        //             self.ui.updateElement( "info", JSON.stringify(info) );
 
-                } );
-            }
-        }
+        //         } );
+        //     }
+        // }
         
-        function onSessionStart(){
-            
-        }
+        // function onSessionStart(){
+        //     self.ui.mesh.position.set(0, -0.5, -1.1)
+				// 		self.camera.add(self.ui.mesh)
+				// 	}
         
-        function onSessionEnd(){
-            
-        }
-        const btn = new ARButton
+        // function onSessionEnd(){
+				// 	self.camera.remove(self.ui.mesh)
+        // }
+        const btn = new ARButton(this.renderer)
+				const controller = this.renderer.xr.getController(0);
+				controller.addEventListener('select', onSelect);
+				this.scene.add(controller);
+				// this.controller = controller;
         this.renderer.setAnimationLoop( this.render.bind(this) );
     }
     
